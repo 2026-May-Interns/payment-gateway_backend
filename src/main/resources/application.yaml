@@ -11,3 +11,6 @@ spring:
     redis:
       host: localhost
       port: 6379
+
+app:
+  reset-token-expiry-days: 2
