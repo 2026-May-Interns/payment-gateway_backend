@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.Optional;import com.userservice.demo.wallet.service.WalletService;
 
 /**
  * Service for user management operations.
@@ -39,6 +39,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final OtpService otpService;
+    private final WalletService walletService;
 
     /**
      * Registers a new customer account.
@@ -83,6 +84,8 @@ public class UserService {
 
         otpService.generateOtp(savedAuthUser.getEmail(), OtpRecord.OtpType.EMAIL);
         otpService.generateOtp(savedCustomer.getPhoneNumber(), OtpRecord.OtpType.PHONE);
+        // Create wallet for customer
+        walletService.createWallet(savedAuthUser);
 
         return savedCustomer;
     }
@@ -144,9 +147,13 @@ public class UserService {
 
         otpService.generateOtp(savedAuthUser.getEmail(), OtpRecord.OtpType.EMAIL);
         otpService.generateOtp(savedMerchant.getPhoneNumber(), OtpRecord.OtpType.PHONE);
+        walletService.createWallet(savedAuthUser);
 
         return savedMerchant;
+        // Create wallet for merchant
     }
+
+
 
     /**
      * Authenticates a user and returns JWT tokens.

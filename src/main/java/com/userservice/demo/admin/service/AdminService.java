@@ -12,7 +12,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.LocalDateTime;import com.userservice.demo.wallet.repository.WalletRepository;
+import com.userservice.demo.payment.repository.PaymentRepository;
+import com.userservice.demo.settlement.repository.SettlementRepository;
+import com.userservice.demo.settlement.model.Settlement;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Service for admin operations.
@@ -25,6 +30,9 @@ public class AdminService {
 
     private final CustomerRepository customerRepository;
     private final MerchantRepository merchantRepository;
+    private final WalletRepository walletRepository;
+    private final PaymentRepository paymentRepository;
+    private final SettlementRepository settlementRepository;
 
     /**
      * Returns paginated list of active customers.
@@ -160,5 +168,31 @@ public class AdminService {
         merchant.setDeletedAt(LocalDateTime.now());
         merchant.setAccountStatus(Merchant.AccountStatus.CLOSED);
         merchantRepository.save(merchant);
+    }
+
+    /**
+     * Returns system overview stats for admin dashboard.
+     * Shows total users, wallets, transactions and last settlement.
+     */
+    public Map<String, Object> getSystemOverview() {
+        Map<String, Object> overview = new HashMap<>();
+
+        // Total customers
+        overview.put("totalCustomers", customerRepository.count());
+
+        // Total merchants
+        overview.put("totalMerchants", merchantRepository.count());
+
+        // Total wallets
+        overview.put("totalWallets", walletRepository.count());
+
+        // Total transactions
+        overview.put("totalPayments", paymentRepository.count());
+
+        // Last settlement
+        Settlement lastSettlement = settlementRepository.findTopByOrderBySettledAtDesc();
+        overview.put("lastSettlementRun", lastSettlement != null ? lastSettlement.getSettledAt() : "No settlements yet");
+
+        return overview;
     }
 }

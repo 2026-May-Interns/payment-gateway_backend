@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;import org.springframework.data.domain.Page;
+import java.util.List;import org.springframework.data.domain.Page;import java.util.Map;
 
 /**
  * Controller for admin operations.
@@ -104,5 +104,13 @@ public class AdminController {
     public ResponseEntity<String> deleteMerchant(@PathVariable Long id) {
         adminService.deleteMerchant(id);
         return ResponseEntity.ok("Merchant deleted successfully");
+    }
+
+    /**
+     * Get system overview for admin dashboard.
+     */
+    @GetMapping("/overview")
+    public ResponseEntity<Map<String, Object>> getSystemOverview() {
+        return ResponseEntity.ok(adminService.getSystemOverview());
     }
 }
