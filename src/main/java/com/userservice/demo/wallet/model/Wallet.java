@@ -4,6 +4,7 @@ import com.userservice.demo.auth.model.AuthUser;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -59,4 +60,13 @@ public class Wallet {
     public enum WalletStatus {
         ACTIVE, INACTIVE
     }
+    /** Number of top-ups done today */
+    private int dailyTopUpCount = 0;
+
+    /** Total amount topped up today in KES */
+    @Column(precision = 19, scale = 2)
+    private BigDecimal dailyTopUpTotal = BigDecimal.ZERO;
+
+    /** Date of last top up - used to reset daily counters */
+    private LocalDate lastTopUpDate;
 }

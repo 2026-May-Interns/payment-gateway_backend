@@ -21,4 +21,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     /** Find all payments by customer */
     List<Payment> findByCustomer(AuthUser customer);
+
+    /** Find all payments by customer - newest first */
+    List<Payment> findByCustomerOrderByCreatedAtDesc(AuthUser customer);
+
+    /** Find all payments by merchant - newest first */
+    List<Payment> findByMerchantOrderByCreatedAtDesc(AuthUser merchant);
+
+    /** Find all pending payments - newest first */
+    List<Payment> findByStatusOrderByCreatedAtDesc(Payment.PaymentStatus status);
 }

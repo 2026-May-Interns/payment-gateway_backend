@@ -24,6 +24,15 @@ public class WalletService {
 
     private final WalletRepository walletRepository;
     private final AuthUserRepository authUserRepository;
+    /** Maximum top-ups allowed per day */
+    private static final int MAX_DAILY_TOPUP_COUNT = 5;
+
+    /** Maximum total top up amount per day in KES */
+    private static final BigDecimal MAX_DAILY_TOPUP_AMOUNT = new BigDecimal("300000");
+
+    /** Maximum single top up amount in KES */
+    private static final BigDecimal MAX_SINGLE_TOPUP_AMOUNT = new BigDecimal("150000");
+
 
     /**
      * Creates a wallet for a user.
@@ -63,13 +72,21 @@ public class WalletService {
         Wallet wallet = walletRepository.findByAuthUser_Email(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet not found"));
 
+        // Reset daily counters if last top up was not today
+        resetDailyCountersIfNeeded(wallet);
+
+        int topUpsRemaining = MAX_DAILY_TOPUP_COUNT - wallet.getDailyTopUpCount();
+        BigDecimal amountRemaining = MAX_DAILY_TOPUP_AMOUNT.subtract(wallet.getDailyTopUpTotal());
+
         return new WalletResponse(
                 wallet.getId(),
                 email,
                 wallet.getAvailableBalance(),
                 wallet.getPendingBalance(),
                 wallet.getStatus().name(),
-                wallet.getCreatedAt()
+                wallet.getCreatedAt(),
+                topUpsRemaining,
+                amountRemaining
         );
     }
 
@@ -78,7 +95,7 @@ public class WalletService {
      * Mock implementation - no real payment integration.
      *
      * @param email   the email from JWT token
-     * @param request contains the top up amount
+     * @param request contains the top-up amount
      * @return updated wallet response
      */
     @Transactional
@@ -90,11 +107,39 @@ public class WalletService {
             throw new BadRequestException("Wallet is inactive");
         }
 
+        // Reset daily counters if needed
+        resetDailyCountersIfNeeded(wallet);
+
+        // Check single top up limit
+        if (request.getAmount().compareTo(MAX_SINGLE_TOPUP_AMOUNT) > 0) {
+            throw new BadRequestException("Maximum single top up amount is KES 150,000");
+        }
+
+        // Check daily count limit
+        if (wallet.getDailyTopUpCount() >= MAX_DAILY_TOPUP_COUNT) {
+            throw new BadRequestException("You have reached the maximum of 5 top ups per day");
+        }
+
+        // Check daily amount limit
+        BigDecimal newDailyTotal = wallet.getDailyTopUpTotal().add(request.getAmount());
+        if (newDailyTotal.compareTo(MAX_DAILY_TOPUP_AMOUNT) > 0) {
+            BigDecimal remaining = MAX_DAILY_TOPUP_AMOUNT.subtract(wallet.getDailyTopUpTotal());
+            throw new BadRequestException("Daily top up limit exceeded. You can only top up KES " + remaining + " more today");
+        }
+
+        // Update wallet
         wallet.setAvailableBalance(wallet.getAvailableBalance().add(request.getAmount()));
+        wallet.setDailyTopUpCount(wallet.getDailyTopUpCount() + 1);
+        wallet.setDailyTopUpTotal(wallet.getDailyTopUpTotal().add(request.getAmount()));
+        wallet.setLastTopUpDate(java.time.LocalDate.now());
         walletRepository.save(wallet);
 
+        int topUpsRemaining = MAX_DAILY_TOPUP_COUNT - wallet.getDailyTopUpCount();
+        BigDecimal amountRemaining = MAX_DAILY_TOPUP_AMOUNT.subtract(wallet.getDailyTopUpTotal());
+
         System.out.println("[NOTIFICATION] Top up of KES " + request.getAmount() +
-                " completed for " + email);
+                " completed for " + email +
+                ". Top ups remaining today: " + topUpsRemaining);
 
         return new WalletResponse(
                 wallet.getId(),
@@ -102,9 +147,12 @@ public class WalletService {
                 wallet.getAvailableBalance(),
                 wallet.getPendingBalance(),
                 wallet.getStatus().name(),
-                wallet.getCreatedAt()
+                wallet.getCreatedAt(),
+                topUpsRemaining,
+                amountRemaining
         );
     }
+
 
     /**
      * Gets wallet by auth user - used internally by payment service.
@@ -115,5 +163,16 @@ public class WalletService {
     public Wallet getWalletByAuthUser(AuthUser authUser) {
         return walletRepository.findByAuthUser(authUser)
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet not found"));
+    }
+    /**
+     * Resets daily top up counters if last top up was not today.
+     */
+    private void resetDailyCountersIfNeeded(Wallet wallet) {
+        if (wallet.getLastTopUpDate() == null ||
+                !wallet.getLastTopUpDate().equals(java.time.LocalDate.now())) {
+            wallet.setDailyTopUpCount(0);
+            wallet.setDailyTopUpTotal(BigDecimal.ZERO);
+            walletRepository.save(wallet);
+        }
     }
 }

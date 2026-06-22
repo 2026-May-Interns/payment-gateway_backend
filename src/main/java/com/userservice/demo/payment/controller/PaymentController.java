@@ -85,4 +85,34 @@ public class PaymentController {
             @AuthenticationPrincipal String email) {
         return ResponseEntity.ok(paymentService.getCustomerPayments(email));
     }
+
+    /**
+     * Merchant gets their pending payments only.
+     */
+    @GetMapping("/merchant/pending")
+    @PreAuthorize("hasRole('MERCHANT')")
+    public ResponseEntity<List<PaymentResponse>> getMerchantPendingPayments(
+            @AuthenticationPrincipal String email) {
+        return ResponseEntity.ok(paymentService.getMerchantPendingPayments(email));
+    }
+
+    /**
+     * Merchant gets their paid payments only.
+     */
+    @GetMapping("/merchant/paid")
+    @PreAuthorize("hasRole('MERCHANT')")
+    public ResponseEntity<List<PaymentResponse>> getMerchantPaidPayments(
+            @AuthenticationPrincipal String email) {
+        return ResponseEntity.ok(paymentService.getMerchantPaidPayments(email));
+    }
+
+    /**
+     * Merchant gets their rejected payments only.
+     */
+    @GetMapping("/merchant/rejected")
+    @PreAuthorize("hasRole('MERCHANT')")
+    public ResponseEntity<List<PaymentResponse>> getMerchantRejectedPayments(
+            @AuthenticationPrincipal String email) {
+        return ResponseEntity.ok(paymentService.getMerchantRejectedPayments(email));
+    }
 }

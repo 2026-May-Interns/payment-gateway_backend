@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 /**
  * DTO for wallet response.
- * Hides internal fields and returns only what the client needs.
+ * Includes balance and daily top up limit information.
  */
 @Data
 @AllArgsConstructor
@@ -19,4 +19,10 @@ public class WalletResponse {
     private BigDecimal pendingBalance;
     private String status;
     private LocalDateTime createdAt;
+
+    /** How many top-ups remaining today */
+    private int topUpsRemainingToday;
+
+    /** How much more can be topped up today in KES */
+    private BigDecimal amountRemainingToday;
 }

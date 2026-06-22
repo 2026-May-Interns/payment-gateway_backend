@@ -59,12 +59,27 @@ public class PaymentService {
     }
 
     /**
+     * Get pending payments for a merchant.
+     */
+    public List<PaymentResponse> getMerchantPendingPayments(String merchantEmail) {
+        AuthUser merchant = authUserRepository.findByEmail(merchantEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Merchant not found"));
+
+        return paymentRepository.findByMerchantAndStatus(merchant, Payment.PaymentStatus.PENDING)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+
+
+    /**
      * Get all pending payment requests - for customers to see.
      *
      * @return list of pending payments
      */
     public List<PaymentResponse> getPendingPayments() {
-        return paymentRepository.findByStatus(Payment.PaymentStatus.PENDING)
+        return paymentRepository.findByStatusOrderByCreatedAtDesc(Payment.PaymentStatus.PENDING)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -157,12 +172,38 @@ public class PaymentService {
     public List<PaymentResponse> getMerchantPayments(String merchantEmail) {
         AuthUser merchant = authUserRepository.findByEmail(merchantEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Merchant not found"));
-
-        return paymentRepository.findByMerchant(merchant)
+        return paymentRepository.findByMerchantOrderByCreatedAtDesc(merchant)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * Get paid payments for a merchant.
+     */
+    public List<PaymentResponse> getMerchantPaidPayments(String merchantEmail) {
+        AuthUser merchant = authUserRepository.findByEmail(merchantEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Merchant not found"));
+
+        return paymentRepository.findByMerchantAndStatus(merchant, Payment.PaymentStatus.PAID)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get rejected payments for a merchant.
+     */
+    public List<PaymentResponse> getMerchantRejectedPayments(String merchantEmail) {
+        AuthUser merchant = authUserRepository.findByEmail(merchantEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Merchant not found"));
+
+        return paymentRepository.findByMerchantAndStatus(merchant, Payment.PaymentStatus.FAILED)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
 
     /**
      * Get all payments for a customer.
@@ -173,8 +214,7 @@ public class PaymentService {
     public List<PaymentResponse> getCustomerPayments(String customerEmail) {
         AuthUser customer = authUserRepository.findByEmail(customerEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
-
-        return paymentRepository.findByCustomer(customer)
+        return paymentRepository.findByCustomerOrderByCreatedAtDesc(customer)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -194,4 +234,5 @@ public class PaymentService {
                 payment.getCreatedAt()
         );
     }
+
 }
